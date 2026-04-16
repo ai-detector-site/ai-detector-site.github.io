@@ -1,0 +1,308 @@
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f172a; color: #cbd5e1; font-family: sans-serif; min-height: 100vh; padding: 1.5rem; }
+  .progress-bar { transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .fade-in { animation: fadeIn 0.5s ease-in; }
+  .tab-btn { background: transparent; border: none; cursor: pointer; padding: 0.6rem 1.4rem; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 2px solid transparent; color: #64748b; transition: all 0.2s; }
+  .tab-btn.active { color: #34d399; border-bottom-color: #34d399; }
+  .tab-btn:hover:not(.active) { color: #94a3b8; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  textarea { background: #1e293b; border: 1px solid #334155; border-radius: 1.5rem; color: #cbd5e1; padding: 1.25rem; width: 100%; resize: vertical; font-size: 0.9rem; line-height: 1.6; outline: none; transition: border-color 0.2s; }
+  textarea:focus { border-color: #34d399; }
+  .btn-primary { background: #34d399; color: #0f172a; font-weight: 800; border: none; border-radius: 1rem; padding: 1rem; cursor: pointer; width: 100%; letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.85rem; transition: all 0.2s; }
+  .btn-primary:hover { background: #6ee7b7; }
+  .btn-primary:active { transform: scale(0.98); }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 1.5rem; padding: 1.5rem; }
+  .badge { font-size: 0.6rem; padding: 0.2rem 0.5rem; border-radius: 0.4rem; font-weight: 700; }
+  .badge-ai { background: #f87171; color: #450a0a; }
+  .badge-human { background: #34d399; color: #022c22; }
+  .badge-detected { background: #334155; color: #34d399; }
+  .sample-item { display: flex; justify-content: space-between; align-items: center; background: rgba(15,23,42,0.5); padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid rgba(51,65,85,0.5); gap: 0.75rem; }
+  .sample-text { font-size: 0.75rem; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .remove-btn { background: none; border: none; color: #f87171; cursor: pointer; font-size: 0.8rem; flex-shrink: 0; }
+  .toggle-group { display: flex; gap: 0.5rem; }
+  .toggle-btn { flex: 1; padding: 0.6rem; border-radius: 0.75rem; border: 1px solid #334155; background: transparent; color: #64748b; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .toggle-btn.sel-ai { background: #f87171; color: #450a0a; border-color: #f87171; }
+  .toggle-btn.sel-human { background: #34d399; color: #022c22; border-color: #34d399; }
+</style>
+
+<div style="max-width: 900px; margin: 0 auto;">
+  <header style="text-align: center; margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 900; background: linear-gradient(90deg, #34d399, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem;">AI PATTERN ANALYZER</h1>
+    <p style="color: #475569; font-size: 0.65rem; letter-spacing: 0.15em; font-weight: 700; text-transform: uppercase;">Deep Heuristic Analysis v2.0 + Machine Learning</p>
+  </header>
+
+  <div style="border-bottom: 1px solid #1e293b; margin-bottom: 1.5rem; display: flex; gap: 0.25rem;">
+    <button class="tab-btn active" onclick="switchTab('analyse', this)">Analyse</button>
+    <button class="tab-btn" onclick="switchTab('lernen', this)">Lernen</button>
+  </div>
+
+  <div id="tab-analyse" class="tab-panel active">
+    <div style="display: grid; gap: 1rem;">
+      <div style="position: relative;">
+        <textarea id="textInput" style="height: 320px;" placeholder="FÃ¼ge hier den zu prÃ¼fenden Text ein..."></textarea>
+        <div style="position: absolute; bottom: 0.75rem; right: 1.25rem; color: #475569; font-size: 0.7rem;" id="charCount">0 Zeichen</div>
+      </div>
+      <div style="background: #1e293b; border: 1px solid #1e3a5f; border-radius: 1rem; padding: 0.75rem 1rem; font-size: 0.7rem; color: #3b82f6;">
+        Lernstatus: <span id="learnStats">0 KI-Texte, 0 Mensch-Texte gelernt</span>
+      </div>
+      <button onclick="analyzeText()" class="btn-primary">Analyse starten</button>
+
+      <div id="resultArea" style="display:none;" class="fade-in">
+        <div style="display: grid; gap: 1rem;">
+          <div class="card" style="position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: #34d399;" id="accentBar"></div>
+            <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: #475569; margin-bottom: 0.5rem; font-weight: 700;">Wahrscheinlichkeit KI</div>
+            <div style="font-size: 3.5rem; font-weight: 900; color: #34d399; margin-bottom: 1rem;" id="percentage">0%</div>
+            <div style="background: #0f172a; border-radius: 9999px; height: 0.75rem; overflow: hidden;">
+              <div id="progressBar" class="progress-bar" style="background: #34d399; height: 100%; width: 0%;"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: #475569; margin-bottom: 1rem; font-weight: 700;">Gefundene Marker</div>
+            <ul id="markerList" style="display: flex; flex-direction: column; gap: 0.5rem;"></ul>
+          </div>
+          <div style="padding: 0.75rem; border: 1px solid #1e293b; border-radius: 0.75rem; font-size: 0.65rem; color: #475569; font-style: italic;">
+            Disclaimer: Dieses Tool nutzt statistische Heuristiken + erlerntes Muster-Wissen. Ein hoher Wert ist kein Beweis fÃ¼r KI, sondern ein Hinweis auf typische Sprachmuster.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-lernen" class="tab-panel">
+    <div style="display: grid; gap: 1.5rem;">
+      <div class="card">
+        <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; font-weight: 700; margin-bottom: 1rem;">Neues Beispiel hinzufÃ¼gen</div>
+        <textarea id="learnInput" style="height: 180px; margin-bottom: 0.75rem;" placeholder="FÃ¼ge einen Beispieltext ein (mind. 50 Zeichen)..."></textarea>
+        <div style="margin-bottom: 0.75rem;">
+          <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.5rem; font-weight: 600;">Dieser Text wurde geschrieben von:</div>
+          <div class="toggle-group">
+            <button class="toggle-btn" id="btnAI" onclick="selectType('ai')">KI</button>
+            <button class="toggle-btn" id="btnHuman" onclick="selectType('human')">Mensch</button>
+          </div>
+        </div>
+        <button onclick="addSample()" class="btn-primary">Beispiel hinzufÃ¼gen</button>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; font-weight: 700;">Gelernte Muster</div>
+          <button onclick="clearSamples()" style="background: none; border: none; color: #f87171; font-size: 0.7rem; cursor: pointer; font-weight: 600;">Alle lÃ¶schen</button>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+          <div style="flex: 1; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); border-radius: 0.75rem; padding: 0.75rem; text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: 900; color: #f87171;" id="countAI">0</div>
+            <div style="font-size: 0.65rem; color: #f87171; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">KI-Texte</div>
+          </div>
+          <div style="flex: 1; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.2); border-radius: 0.75rem; padding: 0.75rem; text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: 900; color: #34d399;" id="countHuman">0</div>
+            <div style="font-size: 0.65rem; color: #34d399; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Mensch-Texte</div>
+          </div>
+        </div>
+        <div style="background: #0f172a; border-radius: 0.75rem; padding: 0.75rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.65rem; color: #475569; font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.08em;">Top gelernte KI-WÃ¶rter</div>
+          <div id="learnedWords" style="font-size: 0.7rem; color: #64748b;">Noch keine Daten.</div>
+        </div>
+        <div id="sampleList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 300px; overflow-y: auto;"></div>
+        <div id="emptyState" style="text-align: center; padding: 2rem; color: #334155; font-size: 0.8rem;">Noch keine Beispiele hinzugefÃ¼gt.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let samples = [];
+  let selectedType = null;
+  let learnedAIWords = {};
+  let learnedHumanWords = {};
+
+  document.getElementById('textInput').addEventListener('input', e => {
+    document.getElementById('charCount').innerText = e.target.value.length + " Zeichen";
+  });
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function selectType(type) {
+    selectedType = type;
+    document.getElementById('btnAI').className = 'toggle-btn' + (type === 'ai' ? ' sel-ai' : '');
+    document.getElementById('btnHuman').className = 'toggle-btn' + (type === 'human' ? ' sel-human' : '');
+  }
+
+  function tokenize(text) {
+    const stopwords = new Set(['dass','aber','auch','sich','sind','wird','eine','einem','einen','einer','eines','nicht','oder','noch','mehr','sehr','durch','nach','Ã¼ber','beim','diese','dieser','diesem','diesen','dieses','kann','wird','wurde','haben','werden']);
+    return text.toLowerCase().replace(/[^a-zÃ¤Ã¶Ã¼Ã\s]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !stopwords.has(w));
+  }
+
+  function rebuildLearned() {
+    learnedAIWords = {};
+    learnedHumanWords = {};
+    samples.forEach(s => {
+      const words = tokenize(s.text);
+      const target = s.type === 'ai' ? learnedAIWords : learnedHumanWords;
+      words.forEach(w => { target[w] = (target[w] || 0) + 1; });
+    });
+    const aiN = samples.filter(s => s.type === 'ai').length;
+    const humN = samples.filter(s => s.type === 'human').length;
+    document.getElementById('countAI').innerText = aiN;
+    document.getElementById('countHuman').innerText = humN;
+    document.getElementById('learnStats').innerText = aiN + ' KI-Texte, ' + humN + ' Mensch-Texte gelernt';
+    const topWords = Object.entries(learnedAIWords).sort((a,b) => b[1]-a[1]).slice(0,10)
+      .map(([w,c]) => '<span style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#f87171;font-size:0.65rem;">' + w + ' (' + c + ')</span>').join(' ');
+    document.getElementById('learnedWords').innerHTML = topWords || 'Noch keine Daten.';
+  }
+
+  function renderSamples() {
+    const list = document.getElementById('sampleList');
+    const empty = document.getElementById('emptyState');
+    list.innerHTML = '';
+    if (samples.length === 0) { empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    [...samples].reverse().forEach((s, ri) => {
+      const i = samples.length - 1 - ri;
+      list.innerHTML += '<div class="sample-item"><span class="sample-text">' + s.text.substring(0,80) + '...</span><span class="badge ' + (s.type==='ai'?'badge-ai':'badge-human') + '">' + (s.type==='ai'?'KI':'Mensch') + '</span><button class="remove-btn" onclick="removeSample('+i+')">â</button></div>';
+    });
+  }
+
+  function addSample() {
+    const text = document.getElementById('learnInput').value.trim();
+    if (text.length < 50) { alert('Bitte gib einen lÃ¤ngeren Text ein (mind. 50 Zeichen).'); return; }
+    if (!selectedType) { alert('Bitte wÃ¤hle aus, ob der Text von KI oder Mensch stammt.'); return; }
+    samples.push({ text, type: selectedType });
+    document.getElementById('learnInput').value = '';
+    selectedType = null;
+    document.getElementById('btnAI').className = 'toggle-btn';
+    document.getElementById('btnHuman').className = 'toggle-btn';
+    rebuildLearned();
+    renderSamples();
+  }
+
+  function removeSample(i) {
+    samples.splice(i, 1);
+    rebuildLearned();
+    renderSamples();
+  }
+
+  function clearSamples() {
+    if (!confirm('Alle Lernbeispiele lÃ¶schen?')) return;
+    samples = [];
+    rebuildLearned();
+    renderSamples();
+  }
+
+  function getLearningBonus(text) {
+    if (samples.length === 0) return { bonus: 0, label: null };
+    const words = tokenize(text);
+    let aiScore = 0, humanScore = 0;
+    words.forEach(w => { aiScore += learnedAIWords[w] || 0; humanScore += learnedHumanWords[w] || 0; });
+    const total = aiScore + humanScore;
+    if (total === 0) return { bonus: 0, label: null };
+    const aiRatio = aiScore / total;
+    const bonus = Math.round((aiRatio - 0.5) * 40);
+    return { bonus, label: 'ð§  Gelerntes Muster (KI: ' + aiScore + ' vs. Mensch: ' + humanScore + ')' };
+  }
+
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
+    return Math.abs(hash);
+  }
+
+  // Remaps a raw score (0â100) so that:
+  // - scores near 0 stay near 0 (clearly human)
+  // - scores near 50 get pushed to 55â75 (ambiguous â looks like AI)
+  // - scores near 100 stay near 99 (clearly AI)
+  function boostScore(raw) {
+    const norm = raw / 100;
+    // Sigmoid-style push: compress the bottom half, expand the top half
+    // Uses a piecewise curve:
+    // below 30 â map to 5â45 (human-leaning texts stay low but not too low)
+    // 30â60  â map to 55â75 (middle ground pushed above 50)
+    // above 60 â map to 75â99 (already high stays high)
+    let out;
+    if (raw < 30) {
+      out = 5 + (raw / 30) * 40;
+    } else if (raw < 60) {
+      const t = (raw - 30) / 30;
+      out = 55 + t * 20;
+    } else {
+      const t = (raw - 60) / 40;
+      out = 75 + t * 24;
+    }
+    return Math.min(Math.round(out), 99);
+  }
+
+  function analyzeText() {
+    const text = document.getElementById('textInput').value.trim();
+    if (text.length < 50) { alert('Bitte gib einen lÃ¤ngeren Text ein (mind. 50 Zeichen).'); return; }
+
+    let score = 0;
+    let findings = [];
+
+    const buzzwords = [
+      { regex: /\b(testament|delve|intricate|pivotal|underscore|landscape|foster|enhance|crucial|shaping|unlock|tapestry|vibrant|comprehensive|meticulous|realm|embark|unleash)\b/gi, label: "KI-Vokabular (z.B. 'delve', 'tapestry')", weight: 8 },
+      { regex: /\b(zudem|des Weiteren|darÃ¼ber hinaus|in diesem Zusammenhang|zusammenfassend lÃ¤sst sich sagen)\b/gi, label: "Formale ÃbergÃ¤nge", weight: 5 },
+      { regex: /\b(entscheidende Rolle|wesentlicher Aspekt|es ist wichtig zu beachten|nicht nur ... sondern auch)\b/gi, label: "Hohle Phrasen", weight: 6 }
+    ];
+    buzzwords.forEach(item => {
+      const matches = text.match(item.regex);
+      if (matches) { score += matches.length * item.weight; findings.push({label: item.label}); }
+    });
+
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+    if (paragraphs.length >= 3) { score += 12; findings.push({label: 'Saubere Block-Struktur (' + paragraphs.length + ' Abschnitte)'}); }
+
+    const lastParagraph = paragraphs[paragraphs.length - 1].trim();
+    if (lastParagraph.endsWith('?') || /viel erfolg|zusammenfassend|hoffe|hilfreich/i.test(lastParagraph)) {
+      score += 18; findings.push({label: "KI-typischer Abschluss (Frage/CTA)"});
+    }
+
+    const bulletPoints = (text.match(/^[â¢\-\*\d\.]\s+/gm) || []).length;
+    if (bulletPoints > 2) { score += bulletPoints * 4; findings.push({label: "Hohe Listen-Frequenz"}); }
+
+    if (/^(Sicher|Gerne|Hier ist|In diesem|Als|NatÃ¼rlich|Sowohl)/i.test(text.substring(0, 40))) {
+      score += 25; findings.push({label: "KI-Antwort-Schema (Einleitung)"});
+    }
+
+    const sentences = text.split(/[.!?]/).filter(s => s.trim().length > 0);
+    if (sentences.length > 3) {
+      const lens = sentences.map(s => s.trim().split(/\s+/).length);
+      const avg = lens.reduce((a,b) => a+b, 0) / lens.length;
+      const variance = lens.reduce((a,b) => a + Math.pow(b-avg,2), 0) / lens.length;
+      if (variance < 12) { score += 20; findings.push({label: "Monotoner Satzrhythmus"}); }
+    }
+
+    score += hashString(text) % 5;
+
+    const { bonus, label } = getLearningBonus(text);
+    if (label) { score += bonus; findings.push({label, learning: true}); }
+
+    const rawScore = Math.min(Math.round(score), 100);
+    const finalScore = boostScore(rawScore);
+
+    document.getElementById('resultArea').style.display = 'block';
+    document.getElementById('percentage').innerText = finalScore + '%';
+    setTimeout(() => { document.getElementById('progressBar').style.width = finalScore + '%'; }, 100);
+
+    const list = document.getElementById('markerList');
+    list.innerHTML = '';
+    findings.forEach(f => {
+      list.innerHTML += '<li class="sample-item"><span style="color:' + (f.learning ? '#22d3ee' : '#cbd5e1') + ';font-size:0.8rem;">' + f.label + '</span><span class="badge badge-detected">DETEKTIERT</span></li>';
+    });
+    if (findings.length === 0) {
+      list.innerHTML = '<li style="text-align:center;color:#475569;font-size:0.8rem;padding:1rem;">Keine Marker gefunden</li>';
+    }
+
+    const color = finalScore > 70 ? '#f87171' : (finalScore > 50 ? '#fbbf24' : '#34d399');
+    document.getElementById('percentage').style.color = color;
+    document.getElementById('progressBar').style.backgroundColor = color;
+    document.getElementById('accentBar').style.backgroundColor = color;
+  }
+</script>
